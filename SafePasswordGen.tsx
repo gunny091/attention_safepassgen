@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import styles from "./style.module.css";
+
 type CopyButtonText = "복사하기" | "복사됨" | "오류";
 
 export default function SafePasswordGen() {
@@ -13,43 +15,8 @@ export default function SafePasswordGen() {
   const [special, setSpecial] = useState<boolean>(true);
   const [copyButtonText, setCopyButtonText] = useState<CopyButtonText>("복사하기");
 
-  function getMaterialChars() {
-    let materialChars = "";
-    if (english) {
-      // 52 chars
-      if (mixCase) {
-        materialChars += "abcdefghijklmnopqrstuvwxyz";
-        materialChars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      } else {
-        materialChars += "abcdefghijklmnopqrstuvwxyz".repeat(2);
-      }
-      if (special) {
-        // 22 chars
-        materialChars += "!@#$&*-+=~?".repeat(2);
-      }
-    }
-    if (numbers) {
-      // 30 chars
-      materialChars += "012345689".repeat(3);
-    }
-    return materialChars;
-  }
-  function pickOneChar(prevChar: string | undefined): string {
-    let materialChars = getMaterialChars();
-    if (prevChar) {
-      materialChars = materialChars.replaceAll(prevChar, "");
-    }
-    const index = Math.floor(Math.random() * materialChars.length);
-    return materialChars.charAt(index);
-  }
-  function generatePassword() {
-    let newPassword = "";
-    let prevChar: string | undefined = undefined;
-    for (let i = 0; i < length; i++) {
-      const newChar = pickOneChar(prevChar);
-      newPassword += newChar;
-      prevChar = newChar;
-    }
+  function generateAndShowPassword() {
+    const newPassword = generatePassword({ length, english, numbers, mixCase, special });
     setPassword(newPassword);
     setCopyButtonText("복사하기");
   }
@@ -63,14 +30,14 @@ export default function SafePasswordGen() {
     }
   }
 
-  useEffect(generatePassword, [length, english, numbers, mixCase, special]);
+  useEffect(generateAndShowPassword, [length, english, numbers, mixCase, special]);
 
   return (
     <>
       <section>
-        <input type="text" readOnly value={password} />
+        <input type="text" readOnly value={password} className={styles.monospace} />
         <div className="grid">
-          <button onClick={generatePassword}>새로고침</button>
+          <button onClick={generateAndShowPassword}>새로고침</button>
           <button onClick={handleCopyButton}>{copyButtonText}</button>
         </div>
       </section>
@@ -123,4 +90,68 @@ export default function SafePasswordGen() {
       </fieldset>
     </>
   );
+}
+
+function getMaterialChars({
+  english,
+  numbers,
+  mixCase,
+  special,
+}: {
+  english: boolean;
+  numbers: boolean;
+  mixCase: boolean;
+  special: boolean;
+}): string {
+  let materialChars = "";
+  if (english) {
+    // 52 chars
+    if (mixCase) {
+      materialChars += "abcdefghijklmnopqrstuvwxyz";
+      materialChars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    } else {
+      materialChars += "abcdefghijklmnopqrstuvwxyz".repeat(2);
+    }
+    if (special) {
+      // 22 chars
+      materialChars += "!@#$&*-+=~?".repeat(2);
+    }
+  }
+  if (numbers) {
+    // 30 chars
+    materialChars += "012345689".repeat(3);
+  }
+  return materialChars;
+}
+
+function pickOneCharExcept(materialChars: string, exceptChar: string | undefined): string {
+  if (exceptChar) {
+    materialChars = materialChars.replaceAll(exceptChar, "");
+  }
+  const index = Math.floor(Math.random() * materialChars.length);
+  return materialChars.charAt(index);
+}
+
+function generatePassword({
+  length,
+  english,
+  numbers,
+  mixCase,
+  special,
+}: {
+  length: number;
+  english: boolean;
+  numbers: boolean;
+  mixCase: boolean;
+  special: boolean;
+}): string {
+  const materialChars = getMaterialChars({ english, numbers, mixCase, special });
+  let newPassword = "";
+  let prevChar: string | undefined = undefined;
+  for (let i = 0; i < length; i++) {
+    const newChar = pickOneCharExcept(materialChars, prevChar);
+    newPassword += newChar;
+    prevChar = newChar;
+  }
+  return newPassword;
 }
